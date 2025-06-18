@@ -38,4 +38,39 @@ else:
     st.stop()
 
 # 연령 구간, 남/여 추출
-연령구간명 = 연령_컬럼[0] if 연령_컬럼 else "연령구간
+연령구간명 = 연령_컬럼[0] if 연령_컬럼 else "연령구간"
+남자_컬럼 = 남_컬럼[0] if 남_컬럼 else "남자인구수"
+여자_컬럼 = 여_컬럼[0] if 여_컬럼 else "여자인구수"
+
+# 인구 피라미드 데이터셋 가공
+pop_df = 지역_df[[연령구간명, 남자_컬럼, 여자_컬럼]].copy()
+pop_df[남자_컬럼] = -pop_df[남자_컬럼].astype(int)  # 남자는 음수로, 피라미드 형태
+pop_df[여자_컬럼] = pop_df[여자_컬럼].astype(int)
+
+# 연령 구간 정렬 (예: "0~4세", "5~9세", ... 순으로)
+pop_df[연령구간명] = pd.Categorical(pop_df[연령구간명], categories=sorted(pop_df[연령구간명].unique(), key=lambda x: int(x.split('~')[0].replace('세', '').replace(' ', ''))), ordered=True)
+pop_df = pop_df.sort_values(연령구간명)
+
+# Plotly 피라미드 그래프
+fig = px.bar(
+    pop_df,
+    x=[남자_컬럼, 여자_컬럼],
+    y=연령구간명,
+    orientation='h',
+    color_discrete_sequence=["blue", "pink"],
+    labels={남자_컬럼: "남자", 여자_컬럼: "여자"},
+    title=f"{선택지역} 연령별 인구 구조 (인구 피라미드)",
+)
+
+fig.update_layout(
+    barmode='relative',
+    xaxis_title="인구수",
+    yaxis_title="연령 구간",
+    xaxis_tickformat=',',
+    bargap=0.1,
+    legend_title_text="성별",
+    width=900,
+    height=700,
+)
+
+st.plotly_chart(fig, use_container_width=True)
