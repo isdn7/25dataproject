@@ -11,25 +11,31 @@ if uploaded_file is not None:
 else:
     df = pd.read_csv("202505_202505_연령별인구현황_월간.csv", encoding="cp949")
 
-# 컬럼명 자동 추출
+# 실제 연령별 인구 컬럼명 추출
 지역_컬럼 = "행정구역"
 연령컬럼목록 = [col for col in df.columns if "계_" in col and ("세" in col or "이상" in col) and not ("총인구수" in col or "연령구간인구수" in col)]
 
-# 지역 선택
 지역목록 = df[지역_컬럼].unique()
 선택지역 = st.selectbox("지역 선택", 지역목록)
 지역_df = df[df[지역_컬럼] == 선택지역]
 
-# 연령별 인구 데이터 추출
 연령구간 = [col.split('_')[-1] for col in 연령컬럼목록]
-인구수 = 지역_df[연령컬럼목록].iloc[0].str.replace(",", "").astype(int).tolist()
+
+# **여기서 숫자 변환**: 결측치는 0으로, 콤마 제거, 에러 무시
+인구수 = []
+for col in 연령컬럼목록:
+    val = 지역_df[col].values[0]
+    try:
+        val = int(str(val).replace(",", ""))
+    except:
+        val = 0
+    인구수.append(val)
 
 pop_df = pd.DataFrame({
     "연령": 연령구간,
     "인구수": 인구수
 })
 
-# 그래프 (세로 막대)
 fig = px.bar(
     pop_df,
     x="연령",
@@ -39,5 +45,4 @@ fig = px.bar(
     hover_data=["인구수"]
 )
 fig.update_layout(xaxis_tickangle=-45)
-
 st.plotly_chart(fig, use_container_width=True)
